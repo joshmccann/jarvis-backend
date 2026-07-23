@@ -118,8 +118,8 @@ $('mic').onclick=()=>{if(!SR){bubble('This browser has no speech recognition. Us
 // wake word
 let waking=false,wrec=null;
 $('wake').onclick=()=>{if(!SR){bubble('Wake word needs Chrome speech recognition.');return;}
- if(waking){waking=false;if(wrec)wrec.stop();$('wake').textContent='◦ enable wake word ("jarvis, daddy\\'s home")';return;}
- waking=true;$('wake').textContent='● wake word on — say "jarvis, daddy\\'s home"';
+ if(waking){waking=false;if(wrec)wrec.stop();$('wake').textContent='◦ enable wake word ("jarvis, daddys home")';return;}
+ waking=true;$('wake').textContent='● wake word on — say "jarvis, daddys home"';
  wrec=new SR();wrec.continuous=true;wrec.interimResults=false;wrec.lang='en-US';
  wrec.onresult=e=>{const t=e.results[e.results.length-1][0].transcript.toLowerCase();if(/jarvis|daddy/.test(t))briefing();};
  wrec.onend=()=>{if(waking)try{wrec.start()}catch(e){}};wrec.start();};
