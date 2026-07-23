@@ -16,6 +16,20 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 HERE = Path(__file__).resolve().parent
 
+def _load_env():  # load .env when not run via systemd EnvironmentFile
+    f = HERE / ".env"
+    if not f.exists():
+        return
+    for line in f.read_text().splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        k, v = line.split("=", 1)
+        if " #" in v:
+            v = v.split(" #")[0]
+        os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+_load_env()
+
 def env(k, d=""): return os.environ.get(k, d)
 ANTHROPIC_KEY = env("ANTHROPIC_API_KEY")
 ANTHROPIC_MODEL = env("ANTHROPIC_MODEL", "claude-haiku-4-5-20251001")
