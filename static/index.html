@@ -1,0 +1,142 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>JARVIS</title>
+<style>
+:root{--panel:rgba(10,20,35,.5);--line:rgba(95,208,232,.16);--line2:rgba(95,208,232,.36);--ink:#dbecf4;--mut:#7f97a8;--dim:#546575;--cyan:#5fd0e8;--cyanb:#9fe8f7;--green:#49e08a;--amber:#ff7a5c}
+*{box-sizing:border-box}html,body{height:100%}
+body{margin:0;min-height:100vh;color:var(--ink);font-family:ui-sans-serif,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased;
+ background:linear-gradient(rgba(5,9,17,.62),rgba(5,9,17,.84)),url(/static/bg.jpg) center/cover fixed no-repeat,#050912}
+.mono{font-family:ui-monospace,"SF Mono",Menlo,monospace}
+.bar{display:flex;align-items:center;justify-content:space-between;padding:15px 30px;border-bottom:1px solid var(--line)}
+.logo{font-family:ui-monospace,monospace;font-weight:700;letter-spacing:.4em;font-size:17px}
+.on{margin-left:14px;font-family:ui-monospace,monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--green);border:1px solid rgba(73,224,138,.3);border-radius:20px;padding:4px 11px}
+.on b{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);margin-right:7px}
+.on.off{color:var(--amber);border-color:rgba(255,122,92,.4)} .on.off b{background:var(--amber);box-shadow:0 0 8px var(--amber)}
+#clock{font-family:ui-monospace,monospace;font-size:15px;letter-spacing:.12em;color:var(--cyanb)} #clock .sep{color:var(--dim);margin:0 12px}
+.rightbar{font-family:ui-monospace,monospace;font-size:12px;color:var(--mut)}
+.stage{display:flex;gap:22px;padding:24px 30px 40px;max-width:2600px;margin:0 auto;min-height:calc(100vh - 60px)}
+.rail{display:flex;flex-direction:column;gap:18px;flex:0 0 320px}.rail.r{flex-basis:400px}
+.center{flex:1;display:flex;flex-direction:column;align-items:center;padding-top:14px;min-width:340px}
+@media(max-width:1240px){.stage{flex-wrap:wrap}.rail,.rail.r{flex:1 1 100%}.center{flex:1 1 100%;order:-1}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:15px 16px;backdrop-filter:blur(3px)}
+.ch{display:flex;align-items:center;gap:9px;margin-bottom:12px}.ch h3{margin:0;font-family:ui-monospace,monospace;font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;flex:1;font-weight:600}.ci{color:var(--cyan);font-size:13px}
+.big{font-family:ui-monospace,monospace;font-size:30px;font-weight:500;color:var(--cyanb);line-height:1}.subt{color:var(--mut);font-size:12px;margin-top:5px}
+.three{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:13px}
+.st{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:8px;padding:8px 4px;text-align:center}.st .v{font-family:ui-monospace,monospace;font-size:16px}.st .l{font-size:9px;letter-spacing:.07em;text-transform:uppercase;color:var(--mut);margin-top:3px}
+.reels{display:flex;flex-wrap:wrap;gap:8px}.rl{display:flex;gap:6px;background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:8px;padding:7px 10px}.rn{font-family:ui-monospace,monospace;font-size:15px;color:var(--cyanb)}.rk{font-size:11px;color:var(--mut)}
+.hot{margin-top:12px;font-size:12px;color:var(--mut)}.hot b{color:var(--cyanb)}.warn{color:var(--amber)}
+.orbwrap{position:relative;width:min(58vh,600px);aspect-ratio:1;display:grid;place-items:center;cursor:pointer;margin-top:6px}
+.orbwrap img{width:100%;mix-blend-mode:screen;filter:brightness(1.1)}
+.orbwrap .ring{position:absolute;inset:-1%;border-radius:50%;border:1px dashed rgba(95,208,232,.22);border-top-color:rgba(159,232,247,.6);animation:spin 22s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}@keyframes breathe{0%,100%{opacity:.5}50%{opacity:1}}
+@media(prefers-reduced-motion:reduce){.orbwrap .ring{animation:none}}
+.title{font-family:ui-monospace,monospace;letter-spacing:.52em;font-size:clamp(24px,2.4vw,34px);font-weight:600;margin:14px 0 12px;padding-left:.52em;color:#eaf6fb}
+.viz{width:min(520px,80%);height:60px;display:block;margin:2px 0 14px}
+.listen{font-family:ui-monospace,monospace;font-size:12.5px;letter-spacing:.08em;color:var(--cyan);border:1px solid var(--line);border-radius:22px;padding:9px 18px;display:inline-flex;gap:10px;align-items:center}
+.listen b{width:8px;height:8px;border-radius:50%;background:var(--cyan);box-shadow:0 0 9px var(--cyan);animation:breathe 1.7s infinite}.listen.rec{color:var(--amber);border-color:rgba(255,122,92,.5)}.listen.rec b{background:var(--amber);box-shadow:0 0 9px var(--amber)}
+.ctrls{display:flex;gap:16px;margin-top:22px}
+.cbtn{width:60px;height:60px;border-radius:50%;border:1px solid var(--line);background:rgba(12,24,40,.68);color:var(--cyan);font-size:21px;cursor:pointer;display:grid;place-items:center}
+.cbtn.main{background:radial-gradient(circle at 50% 40%,rgba(95,208,232,.42),rgba(95,208,232,.12));border-color:var(--line2);color:#eaf6fb;box-shadow:0 0 26px rgba(95,208,232,.3)}.cbtn:hover{border-color:var(--line2);color:var(--cyanb)}
+.wake{margin-top:16px;font-family:ui-monospace,monospace;font-size:11px;color:var(--dim);cursor:pointer;letter-spacing:.06em}
+.convo{display:flex;flex-direction:column;flex:1 1 auto;min-height:340px}
+.chhdr{display:flex;align-items:center;gap:9px;margin-bottom:13px}.chhdr h3{flex:1;margin:0;font-family:ui-monospace,monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase}.chhdr button{font-family:ui-monospace,monospace;font-size:10px;color:var(--mut);background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:5px 11px;cursor:pointer}
+.log{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:11px;padding-right:4px}
+.bub{background:rgba(95,208,232,.07);border:1px solid var(--line);border-radius:13px;padding:12px 15px;font-size:13.5px;line-height:1.55;max-width:92%}.bub.me{background:rgba(255,255,255,.05);align-self:flex-end}.bub .t{font-family:ui-monospace,monospace;font-size:9.5px;color:var(--dim);margin-top:7px}
+.inrow{display:flex;gap:9px;margin-top:12px}.inrow input{flex:1;background:rgba(4,10,18,.6);border:1px solid var(--line);border-radius:22px;padding:12px 16px;color:var(--ink);font-size:13.5px;outline:none}.inrow input:focus{border-color:var(--line2)}
+.inrow button{background:radial-gradient(circle at 50% 40%,rgba(95,208,232,.5),rgba(95,208,232,.15));border:1px solid var(--line2);color:#eaf6fb;border-radius:50%;width:44px;height:44px;cursor:pointer}
+.foot{text-align:center;color:var(--dim);font-size:11px;padding:4px 24px 30px}
+</style></head><body>
+<div class="bar">
+  <div><span class="logo">J.A.R.V.I.S</span><span class="on" id="status"><b></b>Online</span></div>
+  <div id="clock">--:--:--</div>
+  <div class="rightbar">monopolymccann · By Noon</div>
+</div>
+<div class="stage">
+  <div class="rail">
+    <div class="card"><div class="ch"><span class="ci">◈</span><h3>Deal Pipeline</h3></div>
+      <div class="big" id="pipe">$—</div><div class="subt">asking value in the pipeline</div>
+      <div class="three"><div class="st"><div class="v" id="active">—</div><div class="l">Active</div></div><div class="st"><div class="v" id="tosend">—</div><div class="l">To send</div></div><div class="st"><div class="v">2</div><div class="l">Lost</div></div></div>
+      <div class="hot" id="hot"></div></div>
+    <div class="card"><div class="ch"><span class="ci">▮</span><h3>Reel Pipeline</h3></div><div class="reels" id="reels"></div></div>
+    <div class="card"><div class="ch"><span class="ci">◎</span><h3>Sonar</h3></div><canvas id="sonar" style="width:100%;aspect-ratio:1;display:block"></canvas></div>
+  </div>
+  <div class="center">
+    <div class="orbwrap" id="orb"><div class="ring"></div><img src="/static/orb.jpg" alt="JARVIS"></div>
+    <div class="title">J.A.R.V.I.S</div>
+    <canvas id="viz" class="viz"></canvas>
+    <div class="listen" id="listen"><b></b><span id="lstate">Ready</span></div>
+    <div class="ctrls"><button class="cbtn main" id="brief" title="Briefing">🎙</button><button class="cbtn" id="mic" title="Talk">🎤</button><button class="cbtn" id="stopb" title="Stop">■</button></div>
+    <div class="wake" id="wake">◦ enable wake word ("jarvis, daddy's home")</div>
+  </div>
+  <div class="rail r">
+    <div class="card convo"><div class="chhdr"><span class="ci">❯</span><h3>Conversation</h3><button id="clr">Clear</button></div>
+      <div class="log" id="log"><div class="bub">Hello, I am JARVIS. Tap the core for your briefing, the mic to talk, or type below.<div class="t">now</div></div></div>
+      <div class="inrow"><input id="msg" placeholder="Type a message…" autocomplete="off"><button id="send">➤</button></div></div>
+  </div>
+</div>
+<div class="foot" id="foot">connected to the JARVIS backend</div>
+<audio id="player" crossorigin="anonymous"></audio>
+<script>
+const $=id=>document.getElementById(id);
+// clock
+function tick(){const d=new Date();let h=d.getHours(),m=d.getMinutes(),s=d.getSeconds(),ap=h>=12?'PM':'AM';h=h%12||12;const p=n=>String(n).padStart(2,'0');
+ const mo=['January','February','March','April','May','June','July','August','September','October','November','December'][d.getMonth()];
+ $('clock').innerHTML=h+':'+p(m)+':'+p(s)+' '+ap+' <span class="sep">|</span> '+mo+' '+d.getDate()+', '+d.getFullYear();}
+tick();setInterval(tick,1000);
+// live state
+async function loadState(){try{const s=await(await fetch('/state')).json();
+ $('pipe').textContent='$'+(s.deals.pipeline_asking).toLocaleString();$('active').textContent=s.deals.active;$('tosend').textContent=s.deals.to_send;
+ $('hot').innerHTML='Hot · <b>'+s.deals.hot+'</b> · <span class="warn">'+s.deals.flag+'</span>';
+ const r=s.reels;$('reels').innerHTML=[['Posted',r.posted],['Ready',r.ready],['Editor',r.with_editor],['To film',r.to_film]].map(x=>'<div class="rl"><span class="rn">'+x[1]+'</span><span class="rk">'+x[0]+'</span></div>').join('');
+ }catch(e){$('status').className='on off';$('status').innerHTML='<b></b>Backend offline';}}
+loadState();setInterval(loadState,60000);
+// audio + visualizer
+const player=$('player');let actx,analyser,adata,mediaSrc,vizMode='idle';
+function ensureCtx(){if(!actx){actx=new(window.AudioContext||window.webkitAudioContext)();analyser=actx.createAnalyser();analyser.fftSize=64;adata=new Uint8Array(analyser.frequencyBinCount);}}
+function playB64(b64){ensureCtx();player.src='data:audio/mp3;base64,'+b64;if(!mediaSrc){try{mediaSrc=actx.createMediaElementSource(player);mediaSrc.connect(analyser);analyser.connect(actx.destination);}catch(e){}}
+ actx.resume();vizMode='play';player.play();player.onended=()=>{vizMode='idle';setListen('Ready');};setListen('Speaking…');}
+function browserSpeak(t){if(!('speechSynthesis'in window))return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);const vs=speechSynthesis.getVoices();const v=vs.find(v=>/en-GB/.test(v.lang)&&/male/i.test(v.name))||vs.find(v=>/daniel|arthur/i.test(v.name))||vs.find(v=>/en/.test(v.lang));if(v)u.voice=v;u.rate=.98;u.pitch=.9;u.onstart=()=>{vizMode='speak';setListen('Speaking…');};u.onend=()=>{vizMode='idle';setListen('Ready');};speechSynthesis.speak(u);}
+function say(text,audio){if(audio){playB64(audio);}else{browserSpeak(text);}}
+function setListen(t,rec){$('lstate').textContent=t;$('listen').classList.toggle('rec',!!rec);}
+// chat
+const log=$('log');
+function bubble(t,me){const d=document.createElement('div');d.className='bub'+(me?' me':'');d.innerHTML=t+'<div class="t">'+(me?'you':'JARVIS')+'</div>';log.appendChild(d);log.scrollTop=log.scrollHeight;}
+async function ask(text){bubble('…');const ph=log.lastChild;try{const r=await(await fetch('/ask',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({text})})).json();
+ ph.innerHTML=r.text+'<div class="t">JARVIS</div>';say(r.text,r.audio);}catch(e){ph.innerHTML='I could not reach my backend just now.<div class="t">JARVIS</div>';}}
+async function briefing(){bubble('…');const ph=log.lastChild;try{const r=await(await fetch('/briefing')).json();ph.innerHTML=r.text+'<div class="t">JARVIS</div>';say(r.text,r.audio);}catch(e){ph.innerHTML='Backend offline — start the server to hear me.<div class="t">JARVIS</div>';}}
+$('brief').onclick=briefing;$('orb').onclick=briefing;
+$('stopb').onclick=()=>{try{player.pause()}catch(e){};if(window.speechSynthesis)speechSynthesis.cancel();if(rec)try{rec.stop()}catch(e){};vizMode='idle';setListen('Ready');};
+const msg=$('msg');function submit(){const t=msg.value.trim();if(!t)return;bubble(t,true);msg.value='';ask(t);}
+$('send').onclick=submit;msg.addEventListener('keydown',e=>{if(e.key==='Enter')submit();});
+$('clr').onclick=()=>{log.innerHTML='<div class="bub">Cleared.<div class="t">now</div></div>';};
+// mic (browser speech-to-text -> backend)
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;let rec=null;
+$('mic').onclick=()=>{if(!SR){bubble('This browser has no speech recognition. Use Chrome, or type to me.');return;}
+ rec=new SR();rec.lang='en-US';rec.interimResults=false;setListen('Listening…',true);
+ rec.onresult=e=>{const t=e.results[0][0].transcript;bubble(t,true);ask(t);};
+ rec.onend=()=>setListen('Ready');rec.onerror=()=>{setListen('Mic blocked');bubble('I could not open the mic. Check the browser mic permission, or type to me.');};
+ rec.start();};
+// wake word
+let waking=false,wrec=null;
+$('wake').onclick=()=>{if(!SR){bubble('Wake word needs Chrome speech recognition.');return;}
+ if(waking){waking=false;if(wrec)wrec.stop();$('wake').textContent='◦ enable wake word ("jarvis, daddy\\'s home")';return;}
+ waking=true;$('wake').textContent='● wake word on — say "jarvis, daddy\\'s home"';
+ wrec=new SR();wrec.continuous=true;wrec.interimResults=false;wrec.lang='en-US';
+ wrec.onresult=e=>{const t=e.results[e.results.length-1][0].transcript.toLowerCase();if(/jarvis|daddy/.test(t))briefing();};
+ wrec.onend=()=>{if(waking)try{wrec.start()}catch(e){}};wrec.start();};
+// visualizer
+const viz=$('viz'),vx=viz.getContext('2d');function sv(){viz.width=viz.clientWidth*devicePixelRatio;viz.height=viz.clientHeight*devicePixelRatio;}sv();addEventListener('resize',sv);
+let ph2=0;const N=42;
+function drawViz(){requestAnimationFrame(drawViz);const w=viz.width,h=viz.height;vx.clearRect(0,0,w,h);ph2+=0.08;
+ let live=vizMode==='play'&&analyser;if(live)analyser.getByteFrequencyData(adata);
+ for(let i=0;i<N;i++){let a;if(live)a=Math.min(1,adata[i%adata.length]/255*1.6+0.04);else if(vizMode==='speak')a=0.25+0.7*Math.abs(Math.sin(ph2*1.6+i*0.5))*Math.random();else a=0.06+0.05*Math.abs(Math.sin(ph2*0.5+i*0.4));
+  const bw=w/N,bh=a*h*0.9,x=i*bw+bw*0.2,y=(h-bh)/2,g=vx.createLinearGradient(0,y,0,y+bh);g.addColorStop(0,'rgba(159,232,247,.95)');g.addColorStop(1,'rgba(95,208,232,.35)');vx.fillStyle=g;vx.fillRect(x,y,bw*0.6,bh);}}
+drawViz();
+// sonar
+const sc=$('sonar'),s2=sc.getContext('2d');function ss(){const d=sc.clientWidth*devicePixelRatio;sc.width=d;sc.height=d;}ss();addEventListener('resize',ss);
+const blips=[];for(let i=0;i<8;i++)blips.push({a:Math.random()*6.28,r:.3+Math.random()*.6,life:Math.random()});let sweep=0;
+function drawSonar(){requestAnimationFrame(drawSonar);const w=sc.width,cx=w/2,R=w/2*.92;s2.clearRect(0,0,w,w);sweep+=.015;s2.strokeStyle='rgba(95,208,232,.18)';s2.lineWidth=1;
+ for(let k=1;k<=3;k++){s2.beginPath();s2.arc(cx,cx,R*k/3,0,6.28);s2.stroke();}s2.beginPath();s2.moveTo(cx-R,cx);s2.lineTo(cx+R,cx);s2.moveTo(cx,cx-R);s2.lineTo(cx,cx+R);s2.stroke();
+ s2.save();s2.translate(cx,cx);s2.rotate(sweep);const gr=s2.createLinearGradient(0,0,R,0);gr.addColorStop(0,'rgba(95,208,232,.35)');gr.addColorStop(1,'rgba(95,208,232,0)');s2.fillStyle=gr;s2.beginPath();s2.moveTo(0,0);s2.arc(0,0,R,-.4,0);s2.closePath();s2.fill();s2.restore();
+ blips.forEach(b=>{b.life-=.006;if(b.life<0){b.life=1;b.a=Math.random()*6.28;b.r=.3+Math.random()*.6;}const x=cx+Math.cos(b.a)*R*b.r,y=cx+Math.sin(b.a)*R*b.r;s2.fillStyle='rgba(159,232,247,'+b.life*.9+')';s2.beginPath();s2.arc(x,y,3*devicePixelRatio,0,6.28);s2.fill();});}
+drawSonar();
+</script></body></html>
