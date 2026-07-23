@@ -67,8 +67,11 @@ JARVIS_SYSTEM = (
     "emojis, no em dashes. Keep every reply to ONE or TWO short spoken sentences, tight and to the point. "
     "Only give a longer rundown when he explicitly asks for the full briefing or full details. "
     "Answer from the CONTEXT JSON provided. If Josh asks you to DO something you can actually do, end your "
-    "reply with a marker on its own: [ACTION:send_scripts] to send today's reel scripts to his Telegram, or "
-    "[ACTION:run_radar] to run the breakout radar. Only use a marker when he clearly asks for that action."
+    "reply with a marker on its own line: [ACTION:send_scripts] to send today's reel scripts to his Telegram; "
+    "[ACTION:telegram] to text the content of your reply to his Telegram (use whenever he asks you to send, "
+    "text, or message him something); or [ACTION:run_radar] to run the breakout radar. When you use "
+    "[ACTION:telegram], write the actual content he asked for above the marker, since that text gets sent. "
+    "Only use a marker when he clearly asks for that action."
 )
 
 def http_json(url, payload, headers, method="POST"):
@@ -131,10 +134,15 @@ def briefing_text():
         "Where do you want to start?")
 
 def do_action(reply):
+    """Returns (clean_reply, spoken_note). spoken_note (or None) is a short confirmation to append."""
     if "[ACTION:send_scripts]" in reply:
         return reply.replace("[ACTION:send_scripts]", "").strip(), send_scripts()
+    if "[ACTION:telegram]" in reply:
+        clean = reply.replace("[ACTION:telegram]", "").strip()
+        ok = telegram(clean)
+        return clean, ("Sent to your Telegram." if ok else "I couldn't reach Telegram just now.")
     if "[ACTION:run_radar]" in reply:
-        return reply.replace("[ACTION:run_radar]", "").strip(), "run_radar"
+        return reply.replace("[ACTION:run_radar]", "").strip(), "I'll run the breakout radar shortly."
     return reply, None
 
 class H(BaseHTTPRequestHandler):
@@ -165,10 +173,10 @@ class H(BaseHTTPRequestHandler):
         try: data = json.loads(raw or b"{}")
         except Exception: data = {}
         if self.path == "/ask":
-            reply = claude(data.get("text", "")); reply, act = do_action(reply)
-            note = send_scripts() if act == "run_radar" else None  # radar handled elsewhere for now
-            spoken = reply + (" " + note if isinstance(note, str) else "")
-            return self._send(200, {"text": spoken, "audio": fish_tts(spoken), "action": act})
+            reply = claude(data.get("text", ""), data.get("history"))
+            reply, note = do_action(reply)
+            spoken = reply + ((" " + note) if note else "")
+            return self._send(200, {"text": spoken, "audio": fish_tts(spoken)})
         if self.path == "/action/scripts":
             msg = send_scripts(); return self._send(200, {"text": msg, "audio": fish_tts(msg)})
         if self.path == "/update":  # the every-2h sync agent pushes fresh data here

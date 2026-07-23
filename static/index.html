@@ -132,15 +132,16 @@ const player=$('player');let actx,analyser,adata,mediaSrc,vizMode='idle';
 function ensureCtx(){if(!actx){actx=new(window.AudioContext||window.webkitAudioContext)();analyser=actx.createAnalyser();analyser.fftSize=64;adata=new Uint8Array(analyser.frequencyBinCount);}}
 function playB64(b64){ensureCtx();player.src='data:audio/mp3;base64,'+b64;if(!mediaSrc){try{mediaSrc=actx.createMediaElementSource(player);mediaSrc.connect(analyser);analyser.connect(actx.destination);}catch(e){}}
  actx.resume();vizMode='play';botSpeaking=true;setListen('Speaking…');player.play();player.onended=()=>{vizMode='idle';botSpeaking=false;setListen(idleState());};}
-function idleState(){return active?'Listening for "Jarvis"…':'Ready';}
+function idleState(){return convo?'In conversation…':(active?'Listening for "Jarvis"…':'Ready');}
 function browserSpeak(t){if(!('speechSynthesis'in window))return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);const vs=speechSynthesis.getVoices();const v=vs.find(v=>/en-GB/.test(v.lang)&&/male/i.test(v.name))||vs.find(v=>/daniel|arthur/i.test(v.name))||vs.find(v=>/en/.test(v.lang));if(v)u.voice=v;u.rate=.98;u.pitch=.9;u.onstart=()=>{vizMode='speak';botSpeaking=true;setListen('Speaking…');};u.onend=()=>{vizMode='idle';botSpeaking=false;setListen(idleState());};speechSynthesis.speak(u);}
 function say(text,audio){if(audio){playB64(audio);}else{browserSpeak(text);}}
 function setListen(t,rec){$('lstate').textContent=t;$('listen').classList.toggle('rec',!!rec);}
 // chat
 const log=$('log');
 function bubble(t,me){const d=document.createElement('div');d.className='bub'+(me?' me':'');d.innerHTML=t+'<div class="t">'+(me?'you':'JARVIS')+'</div>';log.appendChild(d);log.scrollTop=log.scrollHeight;}
-async function ask(text){bubble('…');const ph=log.lastChild;try{const r=await(await fetch('/ask',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({text})})).json();
- ph.innerHTML=r.text+'<div class="t">JARVIS</div>';say(r.text,r.audio);}catch(e){ph.innerHTML='I could not reach my backend just now.<div class="t">JARVIS</div>';}}
+let hist=[];
+async function ask(text){bubble('…');const ph=log.lastChild;try{const r=await(await fetch('/ask',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({text,history:hist})})).json();
+ ph.innerHTML=r.text+'<div class="t">JARVIS</div>';hist.push({role:'user',content:text},{role:'assistant',content:r.text});if(hist.length>10)hist=hist.slice(-10);say(r.text,r.audio);}catch(e){ph.innerHTML='I could not reach my backend just now.<div class="t">JARVIS</div>';}}
 async function briefing(){bubble('…');const ph=log.lastChild;try{const r=await(await fetch('/briefing')).json();ph.innerHTML=r.text+'<div class="t">JARVIS</div>';say(r.text,r.audio);}catch(e){ph.innerHTML='Backend offline — start the server to hear me.<div class="t">JARVIS</div>';}}
 const msg=$('msg');function submit(){const t=msg.value.trim();if(!t)return;bubble(t,true);msg.value='';ask(t);}
 $('send').onclick=submit;msg.addEventListener('keydown',e=>{if(e.key==='Enter')submit();});
@@ -163,13 +164,23 @@ function startRec(){
  rec.onend=()=>{if(active){try{rec.start()}catch(e){setTimeout(()=>{if(active){try{rec.start()}catch(_){}}} ,500);}}};
  try{rec.start()}catch(e){}
 }
+// closing phrases end the conversation so it goes back to sleep
+const CLOSERS=/\b(that'?s all|thats all|that (?:is|will|'?ll) all|we'?re done|we are done|were done|good ?bye|bye jarvis|thanks? jarvis|thank you jarvis|go to sleep|stand down)\b/;
+let convo=false,convoTimer=null;
+function enterConvo(){convo=true;setListen('In conversation…');resetConvoTimer();}
+function endConvo(){convo=false;clearTimeout(convoTimer);hist=[];setListen(idleState());say('Anytime.',null);}
+function resetConvoTimer(){clearTimeout(convoTimer);convoTimer=setTimeout(()=>{if(convo){convo=false;hist=[];setListen(idleState());}},60000);}
 function onSpeech(e){
  if(botSpeaking||Date.now()<cooldown)return;
  const t=e.results[e.results.length-1][0].transcript.toLowerCase().trim();
- if(!/jarvis|daddy/.test(t))return;
+ const heardWake=/jarvis|daddy/.test(t);
+ if(!convo&&!heardWake)return;                 // asleep -> needs the wake word first
  cooldown=Date.now()+1500;
- let cmd=t.replace(/^.*?\b(jarvis|daddy'?s?)\b[\s,]*/,'').replace(/^home[\s,.]*/,'').trim();
- if(cmd.length<3){bubble('daddys home',true);briefing();}
+ if(convo&&CLOSERS.test(t)){endConvo();return;} // he closed the conversation
+ let cmd=t;
+ if(heardWake)cmd=t.replace(/^.*?\b(jarvis|daddy'?s?)\b[\s,]*/,'').replace(/^home[\s,.]*/,'').trim();
+ const first=!convo;enterConvo();
+ if(cmd.length<3){if(first){bubble('daddys home',true);briefing();}}   // just "Jarvis" -> briefing, then stay open
  else{bubble(cmd,true);ask(cmd);}
 }
 $('activate').onclick=activate;
