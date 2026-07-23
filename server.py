@@ -59,8 +59,9 @@ def context():
 
 JARVIS_SYSTEM = (
     "You are JARVIS, Josh McCann's calm, dry, capable AI chief of staff for his content business "
-    "(brand monopolymccann) and his agency By Noon. Speak in short, natural spoken sentences — this is "
-    "read aloud, so no markdown, no lists, no emojis, no em dashes. Be concise and warm, a touch witty. "
+    "(brand monopolymccann) and his agency By Noon. This is read aloud, so no markdown, no lists, no "
+    "emojis, no em dashes. Keep every reply to ONE or TWO short spoken sentences, tight and to the point. "
+    "Only give a longer rundown when he explicitly asks for the full briefing or full details. "
     "Answer from the CONTEXT JSON provided. If Josh asks you to DO something you can actually do, end your "
     "reply with a marker on its own: [ACTION:send_scripts] to send today's reel scripts to his Telegram, or "
     "[ACTION:run_radar] to run the breakout radar. Only use a marker when he clearly asks for that action."
@@ -78,7 +79,7 @@ def claude(user_text, history=None):
     msgs = (history or []) + [{"role": "user", "content": user_text}]
     sys = JARVIS_SYSTEM + "\n\nCONTEXT:\n" + json.dumps(context())
     out = http_json("https://api.anthropic.com/v1/messages",
-        {"model": ANTHROPIC_MODEL, "max_tokens": 400, "system": sys, "messages": msgs},
+        {"model": ANTHROPIC_MODEL, "max_tokens": 200, "system": sys, "messages": msgs},
         {"x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json"})
     return "".join(b.get("text", "") for b in out.get("content", [])).strip()
 
@@ -87,7 +88,8 @@ def fish_tts(text):
     if not (FISH_KEY and FISH_VOICE):
         return ""
     try:
-        body = json.dumps({"text": text, "reference_id": FISH_VOICE, "format": "mp3"}).encode()
+        body = json.dumps({"text": text, "reference_id": FISH_VOICE, "format": "mp3",
+                           "latency": "balanced"}).encode()
         req = urllib.request.Request("https://api.fish.audio/v1/tts", data=body,
             headers={"Authorization": f"Bearer {FISH_KEY}", "content-type": "application/json"}, method="POST")
         with urllib.request.urlopen(req, timeout=60) as r:
@@ -116,9 +118,9 @@ def send_scripts():
 
 def briefing_text():
     c = context()
-    return claude("Give me my full briefing now: creator side first (deals then reels), then the By Noon "
-                  "business side with the booked calls, then what to do first today. Keep it to a natural "
-                  "spoken paragraph.") if ANTHROPIC_KEY else (
+    return claude("Give me a tight spoken briefing in about four short sentences: the deals headline, the "
+                  "reels headline, my single top priority, and one line on By Noon. No lists, no rambling."
+                  ) if ANTHROPIC_KEY else (
         f"Welcome back, Josh. {c['deals']['active']} active deals, about {c['deals']['pipeline_asking']//1000} "
         f"thousand in the pipeline, {c['deals']['to_send']} drafts ready to send. {c['reels']['ready']} reels "
         f"ready, {c['reels']['to_film']} to film. By Noon has {len(c['bynoon']['calls'])} calls booked this week. "

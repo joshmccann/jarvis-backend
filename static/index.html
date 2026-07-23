@@ -44,6 +44,10 @@ body{margin:0;min-height:100vh;color:var(--ink);font-family:ui-sans-serif,-apple
 .inrow{display:flex;gap:9px;margin-top:12px}.inrow input{flex:1;background:rgba(4,10,18,.6);border:1px solid var(--line);border-radius:22px;padding:12px 16px;color:var(--ink);font-size:13.5px;outline:none}.inrow input:focus{border-color:var(--line2)}
 .inrow button{background:radial-gradient(circle at 50% 40%,rgba(95,208,232,.5),rgba(95,208,232,.15));border:1px solid var(--line2);color:#eaf6fb;border-radius:50%;width:44px;height:44px;cursor:pointer}
 .foot{text-align:center;color:var(--dim);font-size:11px;padding:4px 24px 30px}
+#activate{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;text-align:center;cursor:pointer;background:rgba(5,9,17,.9);backdrop-filter:blur(8px)}
+#activate h2{font-family:ui-monospace,monospace;letter-spacing:.12em;color:#eaf6fb;font-size:22px;margin:16px 0 8px}
+#activate p{color:var(--mut);font-size:13.5px;margin:0}
+#activate .ac-orb{font-size:44px;color:var(--cyan);animation:breathe 2s ease-in-out infinite}
 .orbwrap img{transition:transform .1s ease-out,filter .1s ease-out}
 .orbwrap .glow{position:absolute;inset:16%;border-radius:50%;box-shadow:0 0 60px 8px rgba(95,208,232,.14);opacity:.5;transition:opacity .12s ease-out}
 .ambient{position:fixed;inset:0;pointer-events:none;z-index:-1;overflow:hidden}
@@ -87,12 +91,10 @@ body{margin:0;min-height:100vh;color:var(--ink);font-family:ui-sans-serif,-apple
     <div class="title">J.A.R.V.I.S</div>
     <canvas id="viz" class="viz"></canvas>
     <div class="listen" id="listen"><b></b><span id="lstate">Ready</span></div>
-    <div class="ctrls"><button class="cbtn main" id="brief" title="Briefing">🎙</button><button class="cbtn" id="mic" title="Talk">🎤</button><button class="cbtn" id="stopb" title="Stop">■</button></div>
-    <div class="wake" id="wake">◦ enable wake word ("jarvis, daddy's home")</div>
   </div>
   <div class="rail r">
     <div class="card convo"><div class="chhdr"><span class="ci">❯</span><h3>Conversation</h3><button id="clr">Clear</button></div>
-      <div class="log" id="log"><div class="bub">Hello, I am JARVIS. Tap the core for your briefing, the mic to talk, or type below.<div class="t">now</div></div></div>
+      <div class="log" id="log"><div class="bub">Hello, I am JARVIS. Just say <b>"Jarvis"</b> followed by anything, and I'll answer. Or type below.<div class="t">now</div></div></div>
       <div class="inrow"><input id="msg" placeholder="Type a message…" autocomplete="off"><button id="send">➤</button></div></div>
     <div class="card"><div class="ch"><span class="ci">◧</span><h3>Upwork · B2B (By Noon)</h3></div>
       <div class="three"><div class="st"><div class="v" id="uwpending">—</div><div class="l">Pending</div></div><div class="st"><div class="v" id="uwemails">—</div><div class="l">Emails sent</div></div><div class="st"><div class="v" style="color:var(--green)">✓</div><div class="l">Fulfilling</div></div></div>
@@ -101,6 +103,7 @@ body{margin:0;min-height:100vh;color:var(--ink);font-family:ui-sans-serif,-apple
   </div>
 </div>
 <div class="foot" id="foot">connected to the JARVIS backend</div>
+<div id="activate"><div><div class="ac-orb">◉</div><h2>Tap to wake JARVIS</h2><p>then just talk &mdash; say <b style="color:var(--cyanb)">"Jarvis"</b> and it's listening, hands-free</p></div></div>
 <audio id="player" crossorigin="anonymous"></audio>
 <script>
 const $=id=>document.getElementById(id);
@@ -121,8 +124,9 @@ loadState();setInterval(loadState,60000);
 const player=$('player');let actx,analyser,adata,mediaSrc,vizMode='idle';
 function ensureCtx(){if(!actx){actx=new(window.AudioContext||window.webkitAudioContext)();analyser=actx.createAnalyser();analyser.fftSize=64;adata=new Uint8Array(analyser.frequencyBinCount);}}
 function playB64(b64){ensureCtx();player.src='data:audio/mp3;base64,'+b64;if(!mediaSrc){try{mediaSrc=actx.createMediaElementSource(player);mediaSrc.connect(analyser);analyser.connect(actx.destination);}catch(e){}}
- actx.resume();vizMode='play';player.play();player.onended=()=>{vizMode='idle';setListen('Ready');};setListen('Speaking…');}
-function browserSpeak(t){if(!('speechSynthesis'in window))return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);const vs=speechSynthesis.getVoices();const v=vs.find(v=>/en-GB/.test(v.lang)&&/male/i.test(v.name))||vs.find(v=>/daniel|arthur/i.test(v.name))||vs.find(v=>/en/.test(v.lang));if(v)u.voice=v;u.rate=.98;u.pitch=.9;u.onstart=()=>{vizMode='speak';setListen('Speaking…');};u.onend=()=>{vizMode='idle';setListen('Ready');};speechSynthesis.speak(u);}
+ actx.resume();vizMode='play';botSpeaking=true;setListen('Speaking…');player.play();player.onended=()=>{vizMode='idle';botSpeaking=false;setListen(idleState());};}
+function idleState(){return active?'Listening for "Jarvis"…':'Ready';}
+function browserSpeak(t){if(!('speechSynthesis'in window))return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);const vs=speechSynthesis.getVoices();const v=vs.find(v=>/en-GB/.test(v.lang)&&/male/i.test(v.name))||vs.find(v=>/daniel|arthur/i.test(v.name))||vs.find(v=>/en/.test(v.lang));if(v)u.voice=v;u.rate=.98;u.pitch=.9;u.onstart=()=>{vizMode='speak';botSpeaking=true;setListen('Speaking…');};u.onend=()=>{vizMode='idle';botSpeaking=false;setListen(idleState());};speechSynthesis.speak(u);}
 function say(text,audio){if(audio){playB64(audio);}else{browserSpeak(text);}}
 function setListen(t,rec){$('lstate').textContent=t;$('listen').classList.toggle('rec',!!rec);}
 // chat
@@ -131,26 +135,38 @@ function bubble(t,me){const d=document.createElement('div');d.className='bub'+(m
 async function ask(text){bubble('…');const ph=log.lastChild;try{const r=await(await fetch('/ask',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({text})})).json();
  ph.innerHTML=r.text+'<div class="t">JARVIS</div>';say(r.text,r.audio);}catch(e){ph.innerHTML='I could not reach my backend just now.<div class="t">JARVIS</div>';}}
 async function briefing(){bubble('…');const ph=log.lastChild;try{const r=await(await fetch('/briefing')).json();ph.innerHTML=r.text+'<div class="t">JARVIS</div>';say(r.text,r.audio);}catch(e){ph.innerHTML='Backend offline — start the server to hear me.<div class="t">JARVIS</div>';}}
-$('brief').onclick=briefing;$('orb').onclick=briefing;
-$('stopb').onclick=()=>{try{player.pause()}catch(e){};if(window.speechSynthesis)speechSynthesis.cancel();if(rec)try{rec.stop()}catch(e){};vizMode='idle';setListen('Ready');};
 const msg=$('msg');function submit(){const t=msg.value.trim();if(!t)return;bubble(t,true);msg.value='';ask(t);}
 $('send').onclick=submit;msg.addEventListener('keydown',e=>{if(e.key==='Enter')submit();});
 $('clr').onclick=()=>{log.innerHTML='<div class="bub">Cleared.<div class="t">now</div></div>';};
-// mic (browser speech-to-text -> backend)
-const SR=window.SpeechRecognition||window.webkitSpeechRecognition;let rec=null;
-$('mic').onclick=()=>{if(!SR){bubble('This browser has no speech recognition. Use Chrome, or type to me.');return;}
- rec=new SR();rec.lang='en-US';rec.interimResults=false;setListen('Listening…',true);
- rec.onresult=e=>{const t=e.results[0][0].transcript;bubble(t,true);ask(t);};
- rec.onend=()=>setListen('Ready');rec.onerror=()=>{setListen('Mic blocked');bubble('I could not open the mic. Check the browser mic permission, or type to me.');};
- rec.start();};
-// wake word
-let waking=false,wrec=null;
-$('wake').onclick=()=>{if(!SR){bubble('Wake word needs Chrome speech recognition.');return;}
- if(waking){waking=false;if(wrec)wrec.stop();$('wake').textContent='◦ enable wake word ("jarvis, daddys home")';return;}
- waking=true;$('wake').textContent='● wake word on — say "jarvis, daddys home"';
- wrec=new SR();wrec.continuous=true;wrec.interimResults=false;wrec.lang='en-US';
- wrec.onresult=e=>{const t=e.results[e.results.length-1][0].transcript.toLowerCase();if(/jarvis|daddy/.test(t))briefing();};
- wrec.onend=()=>{if(waking)try{wrec.start()}catch(e){}};wrec.start();};
+// ===== hands-free: always listening for the wake word, no buttons =====
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+let active=false,botSpeaking=false,rec=null,cooldown=0;
+async function activate(){
+ if(active)return;
+ if(!SR){$('activate').style.display='none';bubble('This browser cannot listen. Use Chrome on desktop, or type to me below.');return;}
+ try{await navigator.mediaDevices.getUserMedia({audio:true});}catch(e){}
+ active=true;$('activate').style.display='none';startRec();setListen(idleState());
+ say('Online. Just say Jarvis.',null);
+}
+function startRec(){
+ try{rec=new SR();}catch(e){return;}
+ rec.continuous=true;rec.interimResults=false;rec.lang='en-US';
+ rec.onresult=onSpeech;
+ rec.onerror=ev=>{if(ev.error==='not-allowed'){active=false;setListen('Mic blocked');bubble('The mic is blocked. Click the padlock in the address bar, allow the microphone, then reload.');}};
+ rec.onend=()=>{if(active){try{rec.start()}catch(e){setTimeout(()=>{if(active){try{rec.start()}catch(_){}}} ,500);}}};
+ try{rec.start()}catch(e){}
+}
+function onSpeech(e){
+ if(botSpeaking||Date.now()<cooldown)return;
+ const t=e.results[e.results.length-1][0].transcript.toLowerCase().trim();
+ if(!/jarvis|daddy/.test(t))return;
+ cooldown=Date.now()+1500;
+ let cmd=t.replace(/^.*?\b(jarvis|daddy'?s?)\b[\s,]*/,'').replace(/^home[\s,.]*/,'').trim();
+ if(cmd.length<3){bubble('daddys home',true);briefing();}
+ else{bubble(cmd,true);ask(cmd);}
+}
+$('activate').onclick=activate;
+$('orb').onclick=()=>{active?briefing():activate();};
 // visualizer
 const viz=$('viz'),vx=viz.getContext('2d');function sv(){viz.width=viz.clientWidth*devicePixelRatio;viz.height=viz.clientHeight*devicePixelRatio;}sv();addEventListener('resize',sv);
 let ph2=0;const N=42;const orbImg=document.querySelector('#orb img'),glowEl=document.querySelector('#orb .glow');let orbLvl=0;
