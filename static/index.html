@@ -44,7 +44,30 @@ body{margin:0;min-height:100vh;color:var(--ink);font-family:ui-sans-serif,-apple
 .inrow{display:flex;gap:9px;margin-top:12px}.inrow input{flex:1;background:rgba(4,10,18,.6);border:1px solid var(--line);border-radius:22px;padding:12px 16px;color:var(--ink);font-size:13.5px;outline:none}.inrow input:focus{border-color:var(--line2)}
 .inrow button{background:radial-gradient(circle at 50% 40%,rgba(95,208,232,.5),rgba(95,208,232,.15));border:1px solid var(--line2);color:#eaf6fb;border-radius:50%;width:44px;height:44px;cursor:pointer}
 .foot{text-align:center;color:var(--dim);font-size:11px;padding:4px 24px 30px}
+.orbwrap img{transition:transform .1s ease-out,filter .1s ease-out}
+.orbwrap .glow{position:absolute;inset:16%;border-radius:50%;box-shadow:0 0 60px 8px rgba(95,208,232,.14);opacity:.5;transition:opacity .12s ease-out}
+.ambient{position:fixed;inset:0;pointer-events:none;z-index:-1;overflow:hidden}
+.deco{position:absolute;opacity:.55}
+.deco.ring{border:1px solid var(--line);border-radius:50%}
+.ring.a{width:130px;height:130px;left:5%;bottom:12%;border-top-color:var(--cyan);animation:spin 22s linear infinite}
+.ring.b{width:76px;height:76px;right:7%;top:22%;border-left-color:var(--cyanb);animation:spin 15s linear infinite reverse}
+.ring.e{width:230px;height:230px;left:0%;top:32%;border:1px solid rgba(95,208,232,.1);border-top-color:rgba(95,208,232,.26);animation:spin 34s linear infinite}
+.deco.dot{width:8px;height:8px;border-radius:50%;background:var(--cyan);box-shadow:0 0 12px var(--cyan);animation:breathe 2.6s infinite}
+.dot.c{right:13%;bottom:24%}.dot.f{left:11%;top:15%;width:6px;height:6px;animation-duration:3.4s}
+.deco.mini{border-radius:50%;border:1px solid rgba(95,208,232,.3);box-shadow:inset 0 0 0 6px rgba(95,208,232,.06),0 0 18px rgba(95,208,232,.12);animation:breathe 3s infinite}
+.mini.g{width:54px;height:54px;right:4%;bottom:30%}.mini.h{width:38px;height:38px;left:7%;bottom:34%;animation-duration:3.7s}
+.deco.eq{right:9%;top:46%;display:flex;gap:3px;align-items:flex-end;height:22px;opacity:.5}
+.deco.eq i{width:3px;height:20%;background:var(--cyan);border-radius:2px;animation:eq 1.1s ease-in-out infinite}
+.eq i:nth-child(2){animation-delay:.2s}.eq i:nth-child(3){animation-delay:.4s}.eq i:nth-child(4){animation-delay:.1s}
+@keyframes eq{0%,100%{height:20%}50%{height:100%}}
+@media(prefers-reduced-motion:reduce){.deco{animation:none!important}.deco.eq i{animation:none}}
 </style></head><body>
+<div class="ambient" aria-hidden="true">
+  <div class="deco ring a"></div><div class="deco ring b"></div><div class="deco ring e"></div>
+  <div class="deco dot c"></div><div class="deco dot f"></div>
+  <div class="deco mini g"></div><div class="deco mini h"></div>
+  <div class="deco eq"><i></i><i></i><i></i><i></i></div>
+</div>
 <div class="bar">
   <div><span class="logo">J.A.R.V.I.S</span><span class="on" id="status"><b></b>Online</span></div>
   <div id="clock">--:--:--</div>
@@ -60,7 +83,7 @@ body{margin:0;min-height:100vh;color:var(--ink);font-family:ui-sans-serif,-apple
     <div class="card"><div class="ch"><span class="ci">◎</span><h3>Sonar</h3></div><canvas id="sonar" style="width:100%;aspect-ratio:1;display:block"></canvas></div>
   </div>
   <div class="center">
-    <div class="orbwrap" id="orb"><div class="ring"></div><img src="/static/orb.jpg" alt="JARVIS"></div>
+    <div class="orbwrap" id="orb"><div class="ring"></div><div class="glow"></div><img src="/static/orb.jpg" alt="JARVIS"></div>
     <div class="title">J.A.R.V.I.S</div>
     <canvas id="viz" class="viz"></canvas>
     <div class="listen" id="listen"><b></b><span id="lstate">Ready</span></div>
@@ -71,6 +94,10 @@ body{margin:0;min-height:100vh;color:var(--ink);font-family:ui-sans-serif,-apple
     <div class="card convo"><div class="chhdr"><span class="ci">❯</span><h3>Conversation</h3><button id="clr">Clear</button></div>
       <div class="log" id="log"><div class="bub">Hello, I am JARVIS. Tap the core for your briefing, the mic to talk, or type below.<div class="t">now</div></div></div>
       <div class="inrow"><input id="msg" placeholder="Type a message…" autocomplete="off"><button id="send">➤</button></div></div>
+    <div class="card"><div class="ch"><span class="ci">◧</span><h3>Upwork · B2B (By Noon)</h3></div>
+      <div class="three"><div class="st"><div class="v" id="uwpending">—</div><div class="l">Pending</div></div><div class="st"><div class="v" id="uwemails">—</div><div class="l">Emails sent</div></div><div class="st"><div class="v" style="color:var(--green)">✓</div><div class="l">Fulfilling</div></div></div>
+      <div class="hot" id="uwnote"></div>
+      <div id="uwlabel" style="margin-top:9px;font-family:ui-monospace,monospace;font-size:10px;color:var(--dim)"></div></div>
   </div>
 </div>
 <div class="foot" id="foot">connected to the JARVIS backend</div>
@@ -87,6 +114,7 @@ async function loadState(){try{const s=await(await fetch('/state')).json();
  $('pipe').textContent='$'+(s.deals.pipeline_asking).toLocaleString();$('active').textContent=s.deals.active;$('tosend').textContent=s.deals.to_send;
  $('hot').innerHTML='Hot · <b>'+s.deals.hot+'</b> · <span class="warn">'+s.deals.flag+'</span>';
  const r=s.reels;$('reels').innerHTML=[['Posted',r.posted],['Ready',r.ready],['Editor',r.with_editor],['To film',r.to_film]].map(x=>'<div class="rl"><span class="rn">'+x[1]+'</span><span class="rk">'+x[0]+'</span></div>').join('');
+ if(s.upwork){$('uwpending').textContent=s.upwork.pending;$('uwemails').textContent=s.upwork.emails_sent;$('uwnote').innerHTML='<b>'+s.upwork.pending+' contracts pending.</b> '+s.upwork.note+'.';$('uwlabel').textContent='◇ '+s.upwork.label;}
  }catch(e){$('status').className='on off';$('status').innerHTML='<b></b>Backend offline';}}
 loadState();setInterval(loadState,60000);
 // audio + visualizer
@@ -125,11 +153,14 @@ $('wake').onclick=()=>{if(!SR){bubble('Wake word needs Chrome speech recognition
  wrec.onend=()=>{if(waking)try{wrec.start()}catch(e){}};wrec.start();};
 // visualizer
 const viz=$('viz'),vx=viz.getContext('2d');function sv(){viz.width=viz.clientWidth*devicePixelRatio;viz.height=viz.clientHeight*devicePixelRatio;}sv();addEventListener('resize',sv);
-let ph2=0;const N=42;
+let ph2=0;const N=42;const orbImg=document.querySelector('#orb img'),glowEl=document.querySelector('#orb .glow');let orbLvl=0;
 function drawViz(){requestAnimationFrame(drawViz);const w=viz.width,h=viz.height;vx.clearRect(0,0,w,h);ph2+=0.08;
- let live=vizMode==='play'&&analyser;if(live)analyser.getByteFrequencyData(adata);
- for(let i=0;i<N;i++){let a;if(live)a=Math.min(1,adata[i%adata.length]/255*1.6+0.04);else if(vizMode==='speak')a=0.25+0.7*Math.abs(Math.sin(ph2*1.6+i*0.5))*Math.random();else a=0.06+0.05*Math.abs(Math.sin(ph2*0.5+i*0.4));
-  const bw=w/N,bh=a*h*0.9,x=i*bw+bw*0.2,y=(h-bh)/2,g=vx.createLinearGradient(0,y,0,y+bh);g.addColorStop(0,'rgba(159,232,247,.95)');g.addColorStop(1,'rgba(95,208,232,.35)');vx.fillStyle=g;vx.fillRect(x,y,bw*0.6,bh);}}
+ let live=vizMode==='play'&&analyser;if(live)analyser.getByteFrequencyData(adata);let sum=0;
+ for(let i=0;i<N;i++){let a;if(live)a=Math.min(1,adata[i%adata.length]/255*1.6+0.04);else if(vizMode==='speak')a=0.25+0.7*Math.abs(Math.sin(ph2*1.6+i*0.5))*Math.random();else a=0.06+0.05*Math.abs(Math.sin(ph2*0.5+i*0.4));sum+=a;
+  const bw=w/N,bh=a*h*0.9,x=i*bw+bw*0.2,y=(h-bh)/2,g=vx.createLinearGradient(0,y,0,y+bh);g.addColorStop(0,'rgba(159,232,247,.95)');g.addColorStop(1,'rgba(95,208,232,.35)');vx.fillStyle=g;vx.fillRect(x,y,bw*0.6,bh);}
+ let talking=(vizMode==='play'||vizMode==='speak'),lvl=talking?Math.min(1,(sum/N-0.05)*1.6):0;orbLvl+=(lvl-orbLvl)*0.22;
+ if(orbImg){orbImg.style.transform='scale('+(1+orbLvl*0.07)+')';orbImg.style.filter='brightness('+(1.06+orbLvl*0.85)+') saturate(1.06)';}
+ if(glowEl)glowEl.style.opacity=(0.35+orbLvl*0.65).toFixed(3);}
 drawViz();
 // sonar
 const sc=$('sonar'),s2=sc.getContext('2d');function ss(){const d=sc.clientWidth*devicePixelRatio;sc.width=d;sc.height=d;}ss();addEventListener('resize',ss);

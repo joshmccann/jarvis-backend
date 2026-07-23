@@ -52,6 +52,9 @@ def context():
         "bynoon": {"calls": ["Thu 24 Jul 2:00 PM discovery", "Fri 25 Jul 10:30 AM strategy"],
                    "note": "sample bookings until the calendar is connected"},
         "radar": {"competitors": 19, "next_scan": "Wednesday"},
+        "upwork": {"pending": 3, "emails_sent": 3,
+                   "note": "breakdown email sent for each, fulfilment already underway",
+                   "label": "sample — By Noon B2B pipeline"},
     }
 
 JARVIS_SYSTEM = (
