@@ -45,16 +45,20 @@ def context():
     if f.exists():
         return json.loads(f.read_text())
     return {  # seed snapshot until the sync job overwrites data.json
-        "deals": {"active": 16, "pipeline_asking": 86220, "to_send": 3,
-                  "hot": "Lovable $12k (reply overdue)", "flag": "verify Zaro.ai before any payment"},
-        "reels": {"posted": 1, "ready": 7, "with_editor": 1, "to_film": 6,
-                  "blocked": "Facebook reel needs Josh's on-cam photo"},
+        "deals": {"active": 16, "pipeline_asking": 86220, "to_send": 2,
+                  "hot": "Lovable in progress: reel 1 delivered, chasing the $4k payment",
+                  "flag": "verify Zaro.ai before any payment"},
+        "reels": {"posted": 2, "ready": 7, "with_editor": 1, "to_film": 6},
+        "lovable": {"deal": "3 reels at $4,000 each ($12k)",
+                    "status": "reel 1 filmed and delivered, awaiting payment; reels 2 and 3 not started yet"},
         "bynoon": {"calls": ["Thu 24 Jul 2:00 PM discovery", "Fri 25 Jul 10:30 AM strategy"],
                    "note": "sample bookings until the calendar is connected"},
         "radar": {"competitors": 19, "next_scan": "Wednesday"},
         "upwork": {"pending": 3, "emails_sent": 3,
                    "note": "breakdown email sent for each, fulfilment already underway",
                    "label": "sample — By Noon B2B pipeline"},
+        "community": {"name": "The AI-Ecom Playbook", "members": 90, "joins_today": None,
+                      "mrr": None, "goal_mrr": 1000},
     }
 
 JARVIS_SYSTEM = (
@@ -167,6 +171,14 @@ class H(BaseHTTPRequestHandler):
             return self._send(200, {"text": spoken, "audio": fish_tts(spoken), "action": act})
         if self.path == "/action/scripts":
             msg = send_scripts(); return self._send(200, {"text": msg, "audio": fish_tts(msg)})
+        if self.path == "/update":  # the every-2h sync agent pushes fresh data here
+            if env("UPDATE_TOKEN") and self.headers.get("X-Token") != env("UPDATE_TOKEN"):
+                return self._send(403, {"error": "bad token"})
+            try:
+                (HERE / "data.json").write_text(json.dumps(data))
+                return self._send(200, {"ok": True})
+            except Exception as e:
+                return self._send(500, {"error": str(e)})
         return self._send(404, {"error": "not found"})
     def log_message(self, *a): pass
 

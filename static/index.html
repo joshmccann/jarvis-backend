@@ -84,6 +84,10 @@ body{margin:0;min-height:100vh;color:var(--ink);font-family:ui-sans-serif,-apple
       <div class="three"><div class="st"><div class="v" id="active">—</div><div class="l">Active</div></div><div class="st"><div class="v" id="tosend">—</div><div class="l">To send</div></div><div class="st"><div class="v">2</div><div class="l">Lost</div></div></div>
       <div class="hot" id="hot"></div></div>
     <div class="card"><div class="ch"><span class="ci">▮</span><h3>Reel Pipeline</h3></div><div class="reels" id="reels"></div></div>
+    <div class="card"><div class="ch"><span class="ci">◭</span><h3>Community &middot; MRR</h3></div>
+      <div class="three"><div class="st"><div class="v" id="cmembers">—</div><div class="l">Members</div></div><div class="st"><div class="v" id="cjoins">—</div><div class="l">Joined today</div></div><div class="st"><div class="v" id="cmrr">—</div><div class="l">MRR</div></div></div>
+      <div style="margin-top:13px"><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--mut);margin-bottom:5px"><span>to $1,000 MRR goal</span><span id="cmrrpct">—</span></div><div style="height:7px;background:rgba(255,255,255,.06);border-radius:5px;overflow:hidden"><div id="cmrrbar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--cyan),var(--cyanb));transition:width .5s"></div></div></div>
+      <div id="clabel" style="margin-top:10px;font-family:ui-monospace,monospace;font-size:10px;color:var(--dim)"></div></div>
     <div class="card"><div class="ch"><span class="ci">◎</span><h3>Sonar</h3></div><canvas id="sonar" style="width:100%;aspect-ratio:1;display:block"></canvas></div>
   </div>
   <div class="center">
@@ -118,6 +122,9 @@ async function loadState(){try{const s=await(await fetch('/state')).json();
  $('hot').innerHTML='Hot · <b>'+s.deals.hot+'</b> · <span class="warn">'+s.deals.flag+'</span>';
  const r=s.reels;$('reels').innerHTML=[['Posted',r.posted],['Ready',r.ready],['Editor',r.with_editor],['To film',r.to_film]].map(x=>'<div class="rl"><span class="rn">'+x[1]+'</span><span class="rk">'+x[0]+'</span></div>').join('');
  if(s.upwork){$('uwpending').textContent=s.upwork.pending;$('uwemails').textContent=s.upwork.emails_sent;$('uwnote').innerHTML='<b>'+s.upwork.pending+' contracts pending.</b> '+s.upwork.note+'.';$('uwlabel').textContent='◇ '+s.upwork.label;}
+ if(s.community){const c=s.community;$('cmembers').textContent=c.members!=null?c.members:'—';$('cjoins').textContent=c.joins_today!=null?('+'+c.joins_today):'—';$('cmrr').textContent=c.mrr!=null?('$'+c.mrr):'—';
+  const pct=c.mrr!=null?Math.min(100,Math.round(c.mrr/(c.goal_mrr||1000)*100)):0;$('cmrrpct').textContent=c.mrr!=null?(pct+'%'):'set MRR';$('cmrrbar').style.width=pct+'%';
+  $('clabel').textContent=c.mrr!=null?'':'◇ tell JARVIS your current MRR to track the goal';}
  }catch(e){$('status').className='on off';$('status').innerHTML='<b></b>Backend offline';}}
 loadState();setInterval(loadState,60000);
 // audio + visualizer
