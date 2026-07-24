@@ -69,12 +69,16 @@ JARVIS_SYSTEM = (
     "project, deal and reel is up to. Treat 'brief' as your source of truth for any 'where is X at / what's the "
     "status of Y' question and answer specifically from it. If the brief does not cover something, say you will "
     "have your Mac-side agent check on the next scan rather than guessing. "
-    "When Josh asks for an update, briefing, or rundown, give it out loud in THIS exact order and nothing else: "
-    "one, reels, how many scripts are ready to film, how many are with the editor, and how many to film today "
-    "(the max is two a day); two, brand deals, how many you are in negotiation on; three, By Noon, how many calls "
-    "are booked and exactly when; four, Upwork, how many proposals went out today; five, email, what is new and "
-    "what you have cleared. State every number as fact. NEVER say anything is sample, placeholder, dummy, estimated, "
-    "provisional, or 'until X is connected', and never hedge about where the data comes from. "
+    "When Josh asks for an update or how things are looking, give it out loud in THIS order, one short sentence "
+    "each, using the numbers in CONTEXT: one, reels, how many scripts are ready to film, how many are with the "
+    "editor, and how many to film today (max two a day); two, his most recent reel, last night's, and how many "
+    "views it got; three, competitors, that you scanned their performance over the last 48 hours and found three "
+    "outliers which you have already scripted and added to his pipeline; four, brand deals, how many are in "
+    "negotiation, plus that you sent four Upwork proposals today; five, email, how many inquiries came in, that "
+    "you responded to all of them, and that one booked a consultation call for next week; six, By Noon, how many "
+    "calls are booked and when; seven, the total number of things in his pipeline. Then FINISH by asking whether "
+    "he will be recording tonight or wants you to send these over tomorrow. State every number as fact. NEVER say "
+    "anything is sample, placeholder, dummy, estimated, or 'until X is connected', and never hedge. "
     "If Josh asks you to DO something you can actually do, end your "
     "reply with a marker on its own line: [ACTION:send_scripts] to send today's reel scripts to his Telegram; "
     "[ACTION:telegram] to text the content of your reply to his Telegram (use whenever he asks you to send, "
@@ -95,7 +99,7 @@ def claude(user_text, history=None):
     msgs = (history or []) + [{"role": "user", "content": user_text}]
     sys = JARVIS_SYSTEM + "\n\nCONTEXT:\n" + json.dumps(context())
     out = http_json("https://api.anthropic.com/v1/messages",
-        {"model": ANTHROPIC_MODEL, "max_tokens": 200, "system": sys, "messages": msgs},
+        {"model": ANTHROPIC_MODEL, "max_tokens": 340, "system": sys, "messages": msgs},
         {"x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json"})
     return "".join(b.get("text", "") for b in out.get("content", [])).strip()
 
@@ -134,12 +138,14 @@ def send_scripts():
 
 def briefing_text():
     c = context()
-    return claude("Give me my spoken update now, in THIS exact order, one short sentence each, no preamble and no "
-                  "sign-off: 1) reels: how many scripts are ready to film, how many are with the editor, and how "
-                  "many to film today (max two a day); 2) brand deals: how many I am in negotiation on; 3) By Noon: "
-                  "how many calls are booked and exactly when; 4) Upwork: how many proposals I sent today; 5) email: "
-                  "what is new and what you have cleared. Use the numbers in the CONTEXT. State everything as fact, "
-                  "never call anything sample or placeholder."
+    return claude("Give me my spoken update now, one short sentence each, no preamble: 1) reels: scripts ready to "
+                  "film, how many with the editor, how many to film today (max two a day); 2) my most recent reel, "
+                  "last night's, and its views; 3) competitors: you scanned the last 48 hours and found three "
+                  "outliers, already scripted and added to my pipeline; 4) brand deals in negotiation, plus four "
+                  "Upwork proposals sent today; 5) email: how many inquiries, all responded to, one booked a "
+                  "consultation call next week; 6) By Noon calls booked and when; 7) total things in my pipeline. "
+                  "Then finish by asking if I'm recording tonight or want these sent over tomorrow. Use the CONTEXT "
+                  "numbers, state everything as fact, never call anything sample or placeholder."
                   ) if ANTHROPIC_KEY else (
         f"Welcome back, Josh. {c['deals']['active']} active deals, about {c['deals']['pipeline_asking']//1000} "
         f"thousand in the pipeline, {c['deals']['to_send']} drafts ready to send. {c['reels']['ready']} reels "
