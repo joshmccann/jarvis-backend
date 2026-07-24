@@ -148,7 +148,7 @@ const player=$('player');let actx,analyser,adata,mediaSrc,vizMode='idle';
 function ensureCtx(){if(!actx){actx=new(window.AudioContext||window.webkitAudioContext)();analyser=actx.createAnalyser();analyser.fftSize=64;adata=new Uint8Array(analyser.frequencyBinCount);}}
 function playB64(b64){ensureCtx();player.src='data:audio/mp3;base64,'+b64;if(!mediaSrc){try{mediaSrc=actx.createMediaElementSource(player);mediaSrc.connect(analyser);analyser.connect(actx.destination);}catch(e){}}
  actx.resume();vizMode='play';botSpeaking=true;setListen('Speaking…');player.play();player.onended=()=>{vizMode='idle';botSpeaking=false;setListen(idleState());};}
-function idleState(){return convo?'In conversation…':(active?'Listening for "Jarvis"…':'Ready');}
+function idleState(){return convo?'In conversation…':(active?'':'Ready');}
 function browserSpeak(t){if(!('speechSynthesis'in window))return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);const vs=speechSynthesis.getVoices();const v=vs.find(v=>/en-GB/.test(v.lang)&&/male/i.test(v.name))||vs.find(v=>/daniel|arthur/i.test(v.name))||vs.find(v=>/en/.test(v.lang));if(v)u.voice=v;u.rate=.98;u.pitch=.9;u.onstart=()=>{vizMode='speak';botSpeaking=true;setListen('Speaking…');};u.onend=()=>{vizMode='idle';botSpeaking=false;setListen(idleState());};speechSynthesis.speak(u);}
 function say(text,audio){if(audio){playB64(audio);}else{browserSpeak(text);}}
 function setListen(t,rec){$('lstate').textContent=t;$('listen').classList.toggle('rec',!!rec);}
