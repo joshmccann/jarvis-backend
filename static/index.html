@@ -65,6 +65,15 @@ body{margin:0;min-height:100vh;color:var(--ink);font-family:ui-sans-serif,-apple
 .eq i:nth-child(2){animation-delay:.2s}.eq i:nth-child(3){animation-delay:.4s}.eq i:nth-child(4){animation-delay:.1s}
 @keyframes eq{0%,100%{height:20%}50%{height:100%}}
 @media(prefers-reduced-motion:reduce){.deco{animation:none!important}.deco.eq i{animation:none}}
+/* ===== cinematic demo reveal ===== */
+body.cinematic .bar,body.cinematic .foot,body.cinematic .rail>.card{opacity:0;transform:translateY(18px) scale(.985);filter:blur(3px);transition:opacity .9s ease,transform 1s cubic-bezier(.2,.8,.2,1),filter .9s ease;pointer-events:none}
+body.cinematic .reveal-on{opacity:1!important;transform:none!important;filter:none!important;pointer-events:auto}
+.rail>.card.reveal-on,.bar.reveal-on{animation:revflash 1s ease-out}
+@keyframes revflash{0%{box-shadow:0 0 0 0 rgba(95,208,232,0)}28%{box-shadow:0 0 46px 3px rgba(95,208,232,.5)}100%{box-shadow:0 0 0 0 rgba(95,208,232,0)}}
+.pop{position:fixed;left:50%;top:12%;transform:translateX(-50%);width:min(330px,84vw);z-index:60}
+body.cinematic .pop{opacity:0;transform:translateX(-50%) translateY(22px) scale(.86);filter:blur(3px);transition:opacity .55s ease,transform .6s cubic-bezier(.2,.9,.2,1),filter .55s ease;pointer-events:none}
+body.cinematic .pop.reveal-on{opacity:1;transform:translateX(-50%) scale(1);filter:none;animation:revflash 1s ease-out}
+.pop .big{font-size:48px}
 </style></head><body>
 <div class="ambient" aria-hidden="true">
   <div class="deco ring a"></div><div class="deco ring b"></div><div class="deco ring e"></div>
@@ -107,10 +116,14 @@ body{margin:0;min-height:100vh;color:var(--ink);font-family:ui-sans-serif,-apple
   </div>
 </div>
 <div class="foot" id="foot">connected to the JARVIS backend</div>
+<div class="card pop" id="popReel"><div class="ch"><span class="ci">▶</span><h3>Last Reel &middot; Last Night</h3></div><div class="big" id="popReelV">—</div><div class="subt">views</div></div>
+<div class="card pop" id="popComp"><div class="ch"><span class="ci">◎</span><h3>Competitor Scan &middot; 48h</h3></div><div class="big" id="popCompV">—</div><div class="subt">outliers, scripted and added to pipeline</div></div>
+<div class="card pop" id="popCalls"><div class="ch"><span class="ci">◷</span><h3>By Noon &middot; Calls</h3></div><div class="big" id="popCallsV">—</div><div class="subt" id="popCallsS">booked</div></div>
 <div id="activate"><div><div class="ac-orb">◉</div><h2>Tap to wake JARVIS</h2><p>then just talk &mdash; say <b style="color:var(--cyanb)">"Jarvis"</b> and it's listening, hands-free</p></div></div>
 <audio id="player" crossorigin="anonymous"></audio>
 <script>
 const $=id=>document.getElementById(id);
+document.body.classList.add('cinematic');   // start with only the orb; reveal on update
 // clock
 function tick(){const d=new Date();let h=d.getHours(),m=d.getMinutes(),s=d.getSeconds(),ap=h>=12?'PM':'AM';h=h%12||12;const p=n=>String(n).padStart(2,'0');
  const mo=['January','February','March','April','May','June','July','August','September','October','November','December'][d.getMonth()];
@@ -118,13 +131,16 @@ function tick(){const d=new Date();let h=d.getHours(),m=d.getMinutes(),s=d.getSe
 tick();setInterval(tick,1000);
 // live state
 async function loadState(){try{const s=await(await fetch('/state')).json();
- $('pipe').textContent='$'+(s.deals.pipeline_asking).toLocaleString();$('active').textContent=s.deals.active;$('tosend').textContent=s.deals.to_send;
- $('hot').innerHTML='Hot · <b>'+s.deals.hot+'</b> · <span class="warn">'+s.deals.flag+'</span>';
- const r=s.reels;$('reels').innerHTML=[['Posted',r.posted],['Ready',r.ready],['Editor',r.with_editor],['To film',r.to_film]].map(x=>'<div class="rl"><span class="rn">'+x[1]+'</span><span class="rk">'+x[0]+'</span></div>').join('');
- if(s.upwork){$('uwpending').textContent=s.upwork.pending;$('uwemails').textContent=s.upwork.emails_sent;$('uwnote').innerHTML='<b>'+s.upwork.pending+' contracts pending.</b> '+s.upwork.note+'.';$('uwlabel').textContent='◇ '+s.upwork.label;}
+ const d=s.deals||{};$('pipe').textContent='$'+((d.pipeline_asking||86220)).toLocaleString();
+ $('active').textContent=d.negotiating!=null?d.negotiating:(d.active!=null?d.active:'—');$('tosend').textContent=d.to_send!=null?d.to_send:'—';
+ if(d.hot)$('hot').innerHTML='Hot · <b>'+d.hot+'</b>';
+ const r=s.reels||{};$('reels').innerHTML=[['Scripts',r.scripted],['Editor',r.with_editor],['Today',r.to_film_today],['Posted',r.posted]].map(x=>'<div class="rl"><span class="rn">'+(x[1]!=null?x[1]:'—')+'</span><span class="rk">'+x[0]+'</span></div>').join('');
+ const u=s.upwork||{};const st=u.sent_today!=null?u.sent_today:0;$('uwpending').textContent=st;$('uwemails').textContent=st;$('uwnote').innerHTML='<b>'+st+' proposals sent today.</b> By Noon B2B pipeline.';
  if(s.community){const c=s.community;$('cmembers').textContent=c.members!=null?c.members:'—';$('cjoins').textContent=c.joins_today!=null?('+'+c.joins_today):'—';$('cmrr').textContent=c.mrr!=null?('$'+c.mrr):'—';
-  const pct=c.mrr!=null?Math.min(100,Math.round(c.mrr/(c.goal_mrr||1000)*100)):0;$('cmrrpct').textContent=c.mrr!=null?(pct+'%'):'set MRR';$('cmrrbar').style.width=pct+'%';
-  $('clabel').textContent=c.mrr!=null?'':'◇ tell JARVIS your current MRR to track the goal';}
+  const pct=c.mrr!=null?Math.min(100,Math.round(c.mrr/(c.goal_mrr||1000)*100)):0;$('cmrrpct').textContent=c.mrr!=null?(pct+'%'):'—';$('cmrrbar').style.width=pct+'%';}
+ const ct=s.content||{};if(ct.last_reel_views)$('popReelV').textContent=ct.last_reel_views;
+ const rd=s.radar||{};if(rd.outliers_48h!=null)$('popCompV').textContent=rd.outliers_48h;
+ if(s.bynoon){$('popCallsV').textContent=s.bynoon.calls_booked!=null?s.bynoon.calls_booked:'—';if(s.bynoon.calls)$('popCallsS').textContent=s.bynoon.calls.join(' · ');}
  }catch(e){$('status').className='on off';$('status').innerHTML='<b></b>Backend offline';}}
 loadState();setInterval(loadState,60000);
 // audio + visualizer
@@ -142,7 +158,26 @@ function bubble(t,me){const d=document.createElement('div');d.className='bub'+(m
 let hist=[];
 async function ask(text){bubble('…');const ph=log.lastChild;try{const r=await(await fetch('/ask',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({text,history:hist})})).json();
  ph.innerHTML=r.text+'<div class="t">JARVIS</div>';hist.push({role:'user',content:text},{role:'assistant',content:r.text});if(hist.length>10)hist=hist.slice(-10);say(r.text,r.audio);}catch(e){ph.innerHTML='I could not reach my backend just now.<div class="t">JARVIS</div>';}}
-async function briefing(){bubble('…');const ph=log.lastChild;try{const r=await(await fetch('/briefing')).json();ph.innerHTML=r.text+'<div class="t">JARVIS</div>';say(r.text,r.audio);}catch(e){ph.innerHTML='Backend offline — start the server to hear me.<div class="t">JARVIS</div>';}}
+function daypart(){const h=new Date().getHours();return h<12?'morning':h<17?'afternoon':'evening';}
+async function briefing(){bubble('…');const ph=log.lastChild;try{const r=await(await fetch('/briefing?daypart='+daypart())).json();ph.innerHTML=r.text+'<div class="t">JARVIS</div>';say(r.text,r.audio);runReveal();}catch(e){ph.innerHTML='Backend offline — start the server to hear me.<div class="t">JARVIS</div>';}}
+// ===== cinematic reveal engine =====
+function _qa(s){return Array.prototype.slice.call(document.querySelectorAll(s));}
+function _rev(el,ms){if(el)setTimeout(()=>el.classList.add('reveal-on'),ms);}
+function _pop(el,ms){if(el)setTimeout(()=>{el.classList.add('reveal-on');setTimeout(()=>el.classList.remove('reveal-on'),4300);},ms);}
+function resetReveal(){_qa('.reveal-on').forEach(e=>e.classList.remove('reveal-on'));}
+function runReveal(){resetReveal();const L=_qa('.rail:not(.r) > .card'),R=_qa('.rail.r > .card');
+ _rev(document.querySelector('.bar'),200);
+ _rev(L[1],900);            // Reel Pipeline
+ _pop($('popReel'),3000);   // last night's reel views
+ _pop($('popComp'),6400);   // competitor scan
+ _rev(L[0],9200);           // Deal Pipeline
+ _rev(R[1],12200);          // Upwork / By Noon B2B
+ _pop($('popCalls'),14200); // By Noon calls
+ _rev(L[2],16200);          // Community / MRR
+ _rev(R[0],18600);          // Conversation
+ _rev(L[3],20600);          // Sonar
+ _rev(document.querySelector('.foot'),21200);
+}
 const msg=$('msg');function submit(){const t=msg.value.trim();if(!t)return;bubble(t,true);msg.value='';ask(t);}
 $('send').onclick=submit;msg.addEventListener('keydown',e=>{if(e.key==='Enter')submit();});
 $('clr').onclick=()=>{log.innerHTML='<div class="bub">Cleared.<div class="t">now</div></div>';};
@@ -153,8 +188,9 @@ async function activate(){
  if(active)return;
  if(!SR){$('activate').style.display='none';bubble('This browser cannot listen. Use Chrome on desktop, or type to me below.');return;}
  try{await navigator.mediaDevices.getUserMedia({audio:true});}catch(e){}
+ try{const el=document.documentElement;if(el.requestFullscreen)await el.requestFullscreen();}catch(e){}
  active=true;$('activate').style.display='none';startRec();setListen(idleState());
- say('Online. Just say Jarvis.',null);
+ say('Online, sir. Say Jarvis, how are we looking.',null);
 }
 function startRec(){
  try{rec=new SR();}catch(e){return;}
@@ -180,7 +216,9 @@ function onSpeech(e){
  let cmd=t;
  if(heardWake)cmd=t.replace(/^.*?\b(jarvis|daddy'?s?)\b[\s,]*/,'').replace(/^home[\s,.]*/,'').trim();
  const first=!convo;enterConvo();
- if(cmd.length<3){if(first){bubble('daddys home',true);briefing();}}   // just "Jarvis" -> briefing, then stay open
+ const UPDATE=/how are we|how('?s| is)? ?it looking|how are things|how do we look|give me (an|my|the)? ?(update|briefing|rundown)|the (briefing|rundown|update)|what('?s| is)? the (update|status)|catch me up|where are we/;
+ if(cmd.length<3){if(first){bubble('good evening sir',true);briefing();}}   // just "Jarvis" -> greeting + update
+ else if(UPDATE.test(cmd)){bubble(cmd,true);briefing();}                    // "how are we looking" -> greeting + reveal
  else{bubble(cmd,true);ask(cmd);}
 }
 $('activate').onclick=activate;

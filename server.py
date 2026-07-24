@@ -180,8 +180,12 @@ class H(BaseHTTPRequestHandler):
             if p.exists():
                 ct = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png"}.get(p.suffix, "application/octet-stream")
                 return self._send(200, p.read_bytes(), ct)
-        if self.path == "/briefing":
-            t = briefing_text(); return self._send(200, {"text": t, "audio": fish_tts(t)})
+        if self.path.startswith("/briefing"):
+            dp = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query).get("daypart", [""])[0]
+            t = briefing_text()
+            if dp in ("morning", "afternoon", "evening"):
+                t = "Good " + dp + ", sir. " + t
+            return self._send(200, {"text": t, "audio": fish_tts(t)})
         if self.path == "/state":
             return self._send(200, context())
         if self.path == "/health":
