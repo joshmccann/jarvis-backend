@@ -164,7 +164,7 @@ class H(BaseHTTPRequestHandler):
         if self.path.startswith("/static/"):
             p = HERE / self.path.lstrip("/")
             if p.exists():
-                ct = "image/jpeg" if p.suffix in (".jpg", ".jpeg") else "application/octet-stream"
+                ct = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png"}.get(p.suffix, "application/octet-stream")
                 return self._send(200, p.read_bytes(), ct)
         if self.path == "/briefing":
             t = briefing_text(); return self._send(200, {"text": t, "audio": fish_tts(t)})

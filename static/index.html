@@ -25,7 +25,7 @@ body{margin:0;min-height:100vh;color:var(--ink);font-family:ui-sans-serif,-apple
 .reels{display:flex;flex-wrap:wrap;gap:8px}.rl{display:flex;gap:6px;background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:8px;padding:7px 10px}.rn{font-family:ui-monospace,monospace;font-size:15px;color:var(--cyanb)}.rk{font-size:11px;color:var(--mut)}
 .hot{margin-top:12px;font-size:12px;color:var(--mut)}.hot b{color:var(--cyanb)}.warn{color:var(--amber)}
 .orbwrap{position:relative;width:min(58vh,600px);aspect-ratio:1;display:grid;place-items:center;cursor:pointer;margin-top:6px}
-.orbwrap img{width:100%;mix-blend-mode:screen;filter:brightness(1.1)}
+.orbwrap img{width:100%;filter:brightness(1.05)}
 .orbwrap .ring{position:absolute;inset:-1%;border-radius:50%;border:1px dashed rgba(95,208,232,.22);border-top-color:rgba(159,232,247,.6);animation:spin 22s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}@keyframes breathe{0%,100%{opacity:.5}50%{opacity:1}}
 @media(prefers-reduced-motion:reduce){.orbwrap .ring{animation:none}}
@@ -91,7 +91,7 @@ body{margin:0;min-height:100vh;color:var(--ink);font-family:ui-sans-serif,-apple
     <div class="card"><div class="ch"><span class="ci">◎</span><h3>Sonar</h3></div><canvas id="sonar" style="width:100%;aspect-ratio:1;display:block"></canvas></div>
   </div>
   <div class="center">
-    <div class="orbwrap" id="orb"><div class="ring"></div><div class="glow"></div><img src="/static/orb.jpg" alt="JARVIS"></div>
+    <div class="orbwrap" id="orb"><div class="ring"></div><div class="glow"></div><img src="/static/orb.png" alt="JARVIS"></div>
     <div class="title">J.A.R.V.I.S</div>
     <canvas id="viz" class="viz"></canvas>
     <div class="listen" id="listen"><b></b><span id="lstate">Ready</span></div>
