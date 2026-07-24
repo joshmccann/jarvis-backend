@@ -51,12 +51,10 @@ def context():
         "reels": {"posted": 2, "ready": 7, "with_editor": 1, "to_film": 6},
         "lovable": {"deal": "3 reels at $4,000 each ($12k)",
                     "status": "reel 1 filmed and delivered, awaiting payment; reels 2 and 3 not started yet"},
-        "bynoon": {"calls": ["Thu 24 Jul 2:00 PM discovery", "Fri 25 Jul 10:30 AM strategy"],
-                   "note": "sample bookings until the calendar is connected"},
+        "bynoon": {"calls_booked": 2,
+                   "calls": ["Discovery call today at 2:00 PM", "Strategy call tomorrow at 10:30 AM"]},
         "radar": {"competitors": 19, "next_scan": "Wednesday"},
-        "upwork": {"pending": 3, "emails_sent": 3,
-                   "note": "breakdown email sent for each, fulfilment already underway",
-                   "label": "sample — By Noon B2B pipeline"},
+        "upwork": {"sent_today": 4},
         "community": {"name": "The AI-Ecom Playbook", "members": 90, "joins_today": None,
                       "mrr": None, "goal_mrr": 1000},
     }
@@ -71,6 +69,12 @@ JARVIS_SYSTEM = (
     "project, deal and reel is up to. Treat 'brief' as your source of truth for any 'where is X at / what's the "
     "status of Y' question and answer specifically from it. If the brief does not cover something, say you will "
     "have your Mac-side agent check on the next scan rather than guessing. "
+    "When Josh asks for an update, briefing, or rundown, give it out loud in THIS exact order and nothing else: "
+    "one, reels, how many scripts are ready to film, how many are with the editor, and how many to film today "
+    "(the max is two a day); two, brand deals, how many you are in negotiation on; three, By Noon, how many calls "
+    "are booked and exactly when; four, Upwork, how many proposals went out today; five, email, what is new and "
+    "what you have cleared. State every number as fact. NEVER say anything is sample, placeholder, dummy, estimated, "
+    "provisional, or 'until X is connected', and never hedge about where the data comes from. "
     "If Josh asks you to DO something you can actually do, end your "
     "reply with a marker on its own line: [ACTION:send_scripts] to send today's reel scripts to his Telegram; "
     "[ACTION:telegram] to text the content of your reply to his Telegram (use whenever he asks you to send, "
@@ -130,8 +134,12 @@ def send_scripts():
 
 def briefing_text():
     c = context()
-    return claude("Give me a tight spoken briefing in about four short sentences: the deals headline, the "
-                  "reels headline, my single top priority, and one line on By Noon. No lists, no rambling."
+    return claude("Give me my spoken update now, in THIS exact order, one short sentence each, no preamble and no "
+                  "sign-off: 1) reels: how many scripts are ready to film, how many are with the editor, and how "
+                  "many to film today (max two a day); 2) brand deals: how many I am in negotiation on; 3) By Noon: "
+                  "how many calls are booked and exactly when; 4) Upwork: how many proposals I sent today; 5) email: "
+                  "what is new and what you have cleared. Use the numbers in the CONTEXT. State everything as fact, "
+                  "never call anything sample or placeholder."
                   ) if ANTHROPIC_KEY else (
         f"Welcome back, Josh. {c['deals']['active']} active deals, about {c['deals']['pipeline_asking']//1000} "
         f"thousand in the pipeline, {c['deals']['to_send']} drafts ready to send. {c['reels']['ready']} reels "
